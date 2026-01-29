@@ -1,0 +1,77 @@
+schema_model:
+  name_or_path: "gpt2"   # replace with a strong LM (e.g., Llama-2/3, Qwen) for real usage
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32
+    dropout: 0.05
+
+execution_model:
+  name_or_path: "distilgpt2"  # replace with a smaller LM for real usage
+  lora:
+    enabled: true
+    r: 16
+    alpha: 32
+    dropout: 0.05
+
+tokenizer:
+  max_length: 1024
+  truncation: true
+
+bids:
+  # For likelihood-based rewards, bids must be representable as tokens.
+  # We discretize continuous bids into bins -> special tokens like <BID_042>.
+  num_bins: 100
+  min_bid: 0.0
+  max_bid: 10.0
+
+mcts:
+  cpuct: 1.5
+  search_width: 8
+  max_expansions: 24
+  expansion_batch: 4      # number of children proposed per expansion (batched)
+  rollout_per_schema: 4
+  top_p: 0.9
+  temperature: 0.9
+  prior_temperature: 1.0  # softmax temperature for prior normalization
+  dirichlet_alpha: 0.3    # (approximate) exploration noise strength
+  dirichlet_frac: 0.0     # set >0 to mix priors with uniform at root
+  lambda_s: 0.25          # backpropagation smoothing
+  risk_alpha: 0.5         # RALG risk penalty alpha: mean - alpha * std
+  logprob_microbatch: 4
+  ralg_logprob_microbatch: 4
+
+train:
+  seed: 42
+  device: "cuda"
+  mixed_precision: "no"   # "fp16" / "bf16" via accelerate
+  max_steps: 100
+  log_every: 10
+  save_every: 200
+  output_dir: "checkpoints"
+
+  # Reference policy tracking (EMA of trainable params)
+  ema_decay: 0.999
+  ema_warmup_steps: 0
+  ema_update_every: 1
+
+  # Compute knobs
+  logprob_microbatch: 4
+  mstep_batch_size: 8
+
+  # Learning rates (LoRA-only by default)
+  lr_schema: 2.0e-5
+  lr_exec: 2.0e-5
+  weight_decay: 0.0
+
+  # Schema policy gradient (clipped ratio objective)
+  pg_clip_eps: 0.2
+
+  # Execution alignment: weighted SFT + DPO
+  dpo_beta: 0.1
+  dpo_lambda: 1.0
+
+data:
+  path: "examples/sample_campaigns.jsonl"
+  batch_size: 2
+  num_workers: 0
